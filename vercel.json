@@ -11,6 +11,10 @@
     {
       "src": "/(.*)",
       "dest": "src/index.js"
+    },
+    {
+      "src": "/webhook",
+      "dest": "src/index.js"
     }
   ]
 }

@@ -1,4 +1,4 @@
-const createDebug = require('debug');
+// const createDebug = require('debug');
 const express = require('express');
 const TelegramBot = require('node-telegram-bot-api')
 const moment = require('moment');
@@ -10,14 +10,14 @@ const port = process.env.PORT || 3000
 const baseUrl = process.env.BASE_URL || ""
 const environment = process.env.NODE_ENV || "development"
 const botToken = process.env.BOT_TOKEN || ""
-const debug = createDebug('bot:dev');
+// // const debug = createDebug('bot:dev');
 
-debug({
-  port,
-  baseUrl,
-  environment,
-  botToken
-})
+// debug({
+//   port,
+//   baseUrl,
+//   environment,
+//   botToken
+// })
 console.log({
   port,
   baseUrl,
@@ -433,7 +433,7 @@ bot.on('callback_query', (msg) => {
         page = 1
       }
       let offset = (page - 1) * limit
-      debug({ id, page, limit, offset });
+      // debug({ id, page, limit, offset });
 
       let inlineKeyboardButton = []
       if (data.length) {
@@ -500,13 +500,23 @@ app.get('/', (req, res) => {
   res.status(200).json('Listening to bot events...');
 })
 
+if (environment == 'production') {
+  // debug(baseUrl + "/webhook")
+  console.log(baseUrl + "/webhook");
+  bot.setWebHook(baseUrl + "/webhook")
+    .then(res => {
+      // debug(res)
+      console.log(res);
+    })
+}
+
 app.get('/setup', (req, res) => {
   if (environment == 'production') {
-    debug(baseUrl + "/webhook")
+    // debug(baseUrl + "/webhook")
     console.log(baseUrl + "/webhook");
     bot.setWebHook(baseUrl + "/webhook")
       .then(res => {
-        debug(res)
+        // debug(res)
         console.log(res);
       })
   }
@@ -514,8 +524,8 @@ app.get('/setup', (req, res) => {
 })
 
 app.post('/webhook', (req, res) => {
-  debug(req.body)
-  console.log(res.body);
+  console.log(req.body);
+  // debug(req.body)
   bot.processUpdate(req.body)
   res.sendStatus(200)
 })
@@ -531,5 +541,6 @@ app.use((error, request, response, next) => {
 });
 
 app.listen(port, () => {
-  debug(`Example app listening on port http://localhost:${port}`)
+  // debug(`Example app listening on port http://localhost:${port}`)
+  console.log(`Example app listening on port http://localhost:${port}`);
 })
