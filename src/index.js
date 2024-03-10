@@ -510,7 +510,7 @@ if (environment == 'production') {
     })
 }
 
-app.get('/setup', (req, res) => {
+app.get('/webhook', (req, res) => {
   if (environment == 'production') {
     // debug(baseUrl + "/webhook")
     console.log(baseUrl + "/webhook");
