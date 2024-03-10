@@ -6,6 +6,5 @@
       "source": "/(.*)",
       "destination": "api/index.ts"
     }
-  ],
-  "redirects": [{ "source": "/", "destination": "/api", "permanent": false }]
+  ]
 }
