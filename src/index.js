@@ -3,12 +3,27 @@ const express = require('express');
 const TelegramBot = require('node-telegram-bot-api')
 const moment = require('moment');
 const bodyParser = require('body-parser')
+require('dotenv').config()
 
 const app = express()
 const port = process.env.PORT || 3000
 const baseUrl = process.env.BASE_URL || ""
 const environment = process.env.NODE_ENV || "development"
+const botToken = process.env.BOT_TOKEN || ""
 const debug = createDebug('bot:dev');
+
+debug({
+  port,
+  baseUrl,
+  environment,
+  botToken
+})
+console.log({
+  port,
+  baseUrl,
+  environment,
+  botToken
+});
 
 const data = [
   {
@@ -255,7 +270,7 @@ const data = [
   },
 ]
 
-const bot = new TelegramBot(process.env.BOT_TOKEN || "", {
+const bot = new TelegramBot(botToken, {
   polling: environment != 'production'
 })
 
@@ -305,7 +320,7 @@ bot.onText(/\/start/, async (msg) => {
 
 bot.on('inline_query', async (query) => {
   const limit = 20
-  const offset: number = query.offset ? parseInt(query.offset, 10) : 0
+  const offset = query.offset ? parseInt(query.offset, 10) : 0
   const page = (offset / limit) + 1
   bot.answerInlineQuery(query.id, data.map(el => {
     return {
@@ -313,7 +328,7 @@ bot.on('inline_query', async (query) => {
       type: 'article',
       title: el.name,
       input_message_content: {
-        message_text: `\u200B\u200B\u200B**${el.name}** \n-\n[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow() as string} `,
+        message_text: `\u200B\u200B\u200B**${el.name}** \n-\n[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
         disable_web_page_preview: false,
         parse_mode: 'Markdown'
       },
@@ -321,7 +336,7 @@ bot.on('inline_query', async (query) => {
       thumb_url: el.thumb_url,
       thumb_height: 100,
       thumb_width: 100,
-      description: `[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow() as string} `,
+      description: `[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
     }
   }), {
     is_personal: true,
@@ -463,7 +478,7 @@ bot.on('callback_query', (msg) => {
   }
 })
 
-const chunks = (inputArray: any[], perChunk: number) => {
+const chunks = (inputArray, perChunk) => {
   const result = inputArray.reduce((resultArray, item, index) => {
     const chunkIndex = Math.floor(index / perChunk)
 
@@ -481,25 +496,31 @@ const chunks = (inputArray: any[], perChunk: number) => {
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.get('/', (req: express.Request, res: express.Response) => {
+app.get('/', (req, res) => {
   res.status(200).json('Listening to bot events...');
 })
 
-app.get('/setup', (req: express.Request, res: express.Response) => {
+app.get('/setup', (req, res) => {
   if (environment == 'production') {
+    debug(baseUrl + "/webhook")
+    console.log(baseUrl + "/webhook");
     bot.setWebHook(baseUrl + "/webhook")
-      .then(res => debug(res))
+      .then(res => {
+        debug(res)
+        console.log(res);
+      })
   }
   res.status(200).json('Setup webhook success...');
 })
 
-app.post('/webhook', (req: express.Request, res: express.Response) => {
+app.post('/webhook', (req, res) => {
   debug(req.body)
+  console.log(res.body);
   bot.processUpdate(req.body)
   res.sendStatus(200)
 })
 
-app.use((error: any, request: express.Request, response: express.Response, next: express.NextFunction) => {
+app.use((error, request, response, next) => {
   // Error handling middleware functionality
   const status = error.status || 400;
   // send back an easily understandable error message to the caller
