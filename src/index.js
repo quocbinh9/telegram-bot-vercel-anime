@@ -3,7 +3,8 @@ const morgan = require("morgan");
 const bodyParser = require('body-parser')
 const bot = require('./services/telegram.service');
 const { port } = require('./config/app.config');
-const web = require('./routers/web.router')
+const web = require('./routers/web.router');
+const createConnection = require('./database/index.database');
 
 const app = express()
 
@@ -11,13 +12,18 @@ app.use(morgan('combined'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.use((req, res, next) => {
-  req.bot = bot
-  next()
-})
+createConnection()
+  .then(connection => {
+    app.use(async (req, res, next) => {
+      req.bot = bot
+      req.connectionManager = connection
+      next()
+    })
 
-app.use('/', web)
+    app.use('/', web)
 
-app.listen(port, () => {
-  console.log(`Example app listening on port http://localhost:${port}`);
-})
+    app.listen(port, () => {
+      console.log(`Example app listening on port http://localhost:${port}`);
+    })
+  })
+  .catch(error => console.error('ERROR: ' + error.message))

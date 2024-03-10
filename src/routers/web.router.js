@@ -1,5 +1,6 @@
 const express = require('express');
 const { environment, baseUrl } = require('../config/app.config');
+const { fetchMovies } = require('../services/scapter.service');
 const router = express.Router()
 
 router.get('/', (req, res) => {
@@ -20,6 +21,11 @@ router.all('/webhook', (req, res) => {
       })
   }
   res.status(200).json('Setup webhook success...');
+})
+
+router.get('/fetch', (req, res) => {
+  fetchMovies(req)
+  res.status(200).json('Fetch movie success...');
 })
 
 router.use((error, request, response, next) => {
