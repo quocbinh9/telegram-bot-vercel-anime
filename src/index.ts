@@ -1,8 +1,8 @@
-import createDebug from 'debug';
+const createDebug = require('debug');
 const express = require('express');
-import * as TelegramBot from 'node-telegram-bot-api'
-import * as moment from 'moment';
-import * as bodyParser from 'body-parser'
+const TelegramBot = require('node-telegram-bot-api')
+const moment = require('moment');
+const bodyParser = require('body-parser')
 
 const app = express()
 const port = process.env.PORT || 3000
