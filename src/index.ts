@@ -1,5 +1,5 @@
-import * as express from 'express'
 import createDebug from 'debug';
+const express = require('express');
 import * as TelegramBot from 'node-telegram-bot-api'
 import * as moment from 'moment';
 import * as bodyParser from 'body-parser'
