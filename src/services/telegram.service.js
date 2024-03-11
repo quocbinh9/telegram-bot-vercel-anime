@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api')
 const moment = require('moment');
 const { botToken, environment } = require('../config/app.config');
-const movieEntity = require('../entities/movie.entity');
+const { searchMovies } = require('./movie.service');
 require('dotenv').config()
 
 const data = [
@@ -249,7 +249,7 @@ const data = [
   },
 ]
 
-const createBot = (connectionManager) => {
+const createBot = () => {
   const bot = new TelegramBot(botToken, {
     polling: environment != 'production'
   })
@@ -281,49 +281,44 @@ const createBot = (connectionManager) => {
               switch_inline_query_current_chat: ''
             },
           ],
-          // [
-          //   {
-          //     text: '🔥 Favorite',
-          //     switch_inline_query_current_chat: 'favorite'
-          //   },
-          //   {
-          //     text: '🎪 About',
-          //     callback_data: "about"
-          //   },
-          // ],
+          [
+            {
+              text: '🔥 Favorite',
+              switch_inline_query_current_chat: 'favorite'
+            },
+            {
+              text: '🎪 About',
+              callback_data: "about"
+            },
+          ],
         ]
       }
     })
   });
 
   bot.on('inline_query', async (query) => {
-    connectionManager
-      .getRepository(movieEntity)
-      .createQueryBuilder('movie')
-      .getOne()
-      .then(console.log)
     const limit = 20
     const offset = query.offset ? parseInt(query.offset, 10) : 0
     const page = (offset / limit) + 1
-    bot.answerInlineQuery(query.id, data.map(el => {
+    const movies = await searchMovies(query.query, limit, offset)
+    bot.answerInlineQuery(query.id, movies.map(el => {
       return {
-        id: el._id,
+        id: `${el.id}`,
         type: 'article',
         title: el.name,
         input_message_content: {
-          message_text: `\u200B\u200B\u200B**${el.name}** \n-\n[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
+          message_text: `\u200B\u200B\u200B**${el.name}** \n-\n[${el.year}] ${el.origin_name} - ${moment(el.modified_time).fromNow()} `,
           disable_web_page_preview: false,
           parse_mode: 'Markdown'
         },
-        url: el.thumb_url,
         thumb_url: el.thumb_url,
         thumb_height: 100,
         thumb_width: 100,
-        description: `[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
+        description: `[${el.year}] ${el.origin_name} - ${moment(el.modified_time).fromNow()} `,
       }
     }), {
       is_personal: true,
-      // next_offset: `${limit * page} `,
+      next_offset: `${limit * page} `,
       cache_time: 10,
     })
   })

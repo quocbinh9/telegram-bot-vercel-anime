@@ -14,7 +14,8 @@ app.use(bodyParser.json());
 
 createConnection()
   .then(connection => {
-    const bot = createBot(connection)
+    global.connectionManager = connection
+    const bot = createBot()
     app.use(async (req, res, next) => {
       req.bot = bot
       req.connectionManager = connection
