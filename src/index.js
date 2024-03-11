@@ -1,7 +1,7 @@
 const express = require('express');
 const morgan = require("morgan");
 const bodyParser = require('body-parser')
-const bot = require('./services/telegram.service');
+const createBot = require('./services/telegram.service');
 const { port } = require('./config/app.config');
 const web = require('./routers/web.router');
 const createConnection = require('./database/index.database');
@@ -14,6 +14,7 @@ app.use(bodyParser.json());
 
 createConnection()
   .then(connection => {
+    const bot = createBot(connection)
     app.use(async (req, res, next) => {
       req.bot = bot
       req.connectionManager = connection

@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api')
 const moment = require('moment');
 const { botToken, environment } = require('../config/app.config');
+const movieEntity = require('../entities/movie.entity');
 require('dotenv').config()
 
 const data = [
@@ -248,211 +249,219 @@ const data = [
   },
 ]
 
-const bot = new TelegramBot(botToken, {
-  polling: environment != 'production'
-})
-
-bot.setMyCommands([
-  {
-    command: "start",
-    description: "Wellcome ophim bot",
-  },
-  {
-    command: "about",
-    description: "This is about ophim bot",
-  },
-], {
-  scope: {
-    type: "all_private_chats"
-  },
-  language_code: "en"
-})
-
-bot.onText(/\/start/, async (msg) => {
-  bot.sendPhoto(msg.chat.id, 'https://www.impactbnd.com/hubfs/marketing-chatbot-examples.jpg', {
-    caption: `👾 Welcome to a universe packed with FUN movie! \n\n🤩 Type @ophim_m_bot in any chat or channel, pick your favorite movie and cash in on your skills! 💸 🚀`,
-    reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text: '📺 Search',
-            switch_inline_query_current_chat: ''
-          },
-        ],
-        [
-          {
-            text: '🔥 Favorite',
-            switch_inline_query_current_chat: 'favorite'
-          },
-          {
-            text: '🎪 About',
-            callback_data: "about"
-          },
-        ],
-
-      ]
-    }
+const createBot = (connectionManager) => {
+  const bot = new TelegramBot(botToken, {
+    polling: environment != 'production'
   })
-});
 
-bot.on('inline_query', async (query) => {
-  const limit = 20
-  const offset = query.offset ? parseInt(query.offset, 10) : 0
-  const page = (offset / limit) + 1
-  bot.answerInlineQuery(query.id, data.map(el => {
-    return {
-      id: el._id,
-      type: 'article',
-      title: el.name,
-      input_message_content: {
-        message_text: `\u200B\u200B\u200B**${el.name}** \n-\n[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
-        disable_web_page_preview: false,
-        parse_mode: 'Markdown'
-      },
-      url: el.thumb_url,
-      thumb_url: el.thumb_url,
-      thumb_height: 100,
-      thumb_width: 100,
-      description: `[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
-    }
-  }), {
-    is_personal: true,
-    // next_offset: `${limit * page} `,
-    cache_time: 10,
+  bot.setMyCommands([
+    {
+      command: "start",
+      description: "Wellcome ophim bot",
+    },
+    {
+      command: "about",
+      description: "This is about ophim bot",
+    },
+  ], {
+    scope: {
+      type: "all_private_chats"
+    },
+    language_code: "en"
   })
-})
 
-bot.on('message', (msg) => {
-  if (msg.text?.startsWith('\u200B\u200B\u200B')) {
-    const text = msg.text.replace('\u200B\u200B\u200B', '').split('\n')[0] || ''
-    const movie = data.filter(el => el.name == text.trim())[0] || null
-    if (movie) {
-      let inlineKeyboardButton = []
-      if (movie.trailer_url) {
-        inlineKeyboardButton.push([
-          {
-            text: 'Trailer',
-            web_app: {
-              url: movie.trailer_url,
-            }
-          }
-        ])
+  bot.onText(/\/start/, async (msg) => {
+    bot.sendPhoto(msg.chat.id, 'https://www.impactbnd.com/hubfs/marketing-chatbot-examples.jpg', {
+      caption: `👾 Welcome to a universe packed with FUN movie! \n\n🤩 Type @ophim_m_bot in any chat or channel, pick your favorite movie and cash in on your skills! 💸 🚀`,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '📺 Search',
+              switch_inline_query_current_chat: ''
+            },
+          ],
+          // [
+          //   {
+          //     text: '🔥 Favorite',
+          //     switch_inline_query_current_chat: 'favorite'
+          //   },
+          //   {
+          //     text: '🎪 About',
+          //     callback_data: "about"
+          //   },
+          // ],
+        ]
       }
-      inlineKeyboardButton.push([
-        {
-          text: 'Episodes',
-          callback_data: `episodes_${movie._id}`,
-        },
-        {
-          text: '📺 Search other',
-          switch_inline_query_current_chat: ''
-        },
-      ])
-      bot.sendPhoto(msg.chat.id, movie.thumb_url, {
-        reply_to_message_id: msg.message_id,
-        caption: `**${movie.name}** \n-\n[${movie.year}] ${movie.origin_name} \n${movie.quality} - ${movie.lang}`,
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: inlineKeyboardButton
-        }
-      })
-    }
-  }
-})
+    })
+  });
 
-bot.on('callback_query', (msg) => {
-  if (msg.data?.startsWith('back_movie_')) {
-    const id = msg.data.replace('episodes_', '').replace('back_movie_', '').trim()
-    const movie = data.filter(el => el._id == id)[0] || null
-    if (movie) {
-      let inlineKeyboardButton = []
-      if (movie.trailer_url) {
-        inlineKeyboardButton.push([
-          {
-            text: 'Trailer',
-            web_app: {
-              url: movie.trailer_url,
-            }
-          }
-        ])
-      }
-      inlineKeyboardButton.push([
-        {
-          text: 'Episodes',
-          callback_data: `episodes_${movie._id}`,
+  bot.on('inline_query', async (query) => {
+    connectionManager
+      .getRepository(movieEntity)
+      .createQueryBuilder('movie')
+      .getOne()
+      .then(console.log)
+    const limit = 20
+    const offset = query.offset ? parseInt(query.offset, 10) : 0
+    const page = (offset / limit) + 1
+    bot.answerInlineQuery(query.id, data.map(el => {
+      return {
+        id: el._id,
+        type: 'article',
+        title: el.name,
+        input_message_content: {
+          message_text: `\u200B\u200B\u200B**${el.name}** \n-\n[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
+          disable_web_page_preview: false,
+          parse_mode: 'Markdown'
         },
-        {
-          text: '📺 Search other',
-          switch_inline_query_current_chat: ''
-        },
-      ])
-      bot.editMessageReplyMarkup({
-        inline_keyboard: inlineKeyboardButton
-      }, {
-        message_id: msg.message?.message_id,
-        chat_id: msg.message?.chat.id
-      })
-    }
-  }
-  if (msg.data?.startsWith('episodes_')) {
-    const text = msg.data.replace('episodes_', '').replace('back_movie_', '').trim()
-    const id = text.split('_')[0] ?? "";
-    let page = parseInt(text.split('_')[1] ?? 1)
-    const limit = 36
-
-    const movie = data.filter(el => el._id == id)[0] || null
-    if (movie) {
-      const data = movie.episodes[0].server_data || []
-      if (page > Math.ceil(data.length / limit)) {
-        page = Math.ceil(data.length / limit)
+        url: el.thumb_url,
+        thumb_url: el.thumb_url,
+        thumb_height: 100,
+        thumb_width: 100,
+        description: `[${el.year}] ${el.origin_name} - ${moment(el.modified.time).fromNow()} `,
       }
-      if (page <= 0) {
-        page = 1
-      }
-      let offset = (page - 1) * limit
-      // debug({ id, page, limit, offset });
+    }), {
+      is_personal: true,
+      // next_offset: `${limit * page} `,
+      cache_time: 10,
+    })
+  })
 
-      let inlineKeyboardButton = []
-      if (data.length) {
-        for (const groupData of chunks(data.slice(offset, limit + offset), 6)) {
-          let items = []
-          for (const item of groupData) {
-            items.push({
-              text: item.name,
-              web_app: {
-                url: item.link_embed
-              }
-            })
-          }
-          inlineKeyboardButton.push(items)
-        }
-        if (data.length > limit) {
+  bot.on('message', (msg) => {
+    if (msg.text?.startsWith('\u200B\u200B\u200B')) {
+      const text = msg.text.replace('\u200B\u200B\u200B', '').split('\n')[0] || ''
+      const movie = data.filter(el => el.name == text.trim())[0] || null
+      if (movie) {
+        let inlineKeyboardButton = []
+        if (movie.trailer_url) {
           inlineKeyboardButton.push([
             {
-              text: '◀️ Prev',
-              callback_data: `episodes_${id}_${page - 1}`
-            },
-            {
-              text: '▶️ Next',
-              callback_data: `episodes_${id}_${page + 1}`
+              text: 'Trailer',
+              web_app: {
+                url: movie.trailer_url,
+              }
             }
           ])
         }
+        inlineKeyboardButton.push([
+          {
+            text: 'Episodes',
+            callback_data: `episodes_${movie._id}`,
+          },
+          {
+            text: '📺 Search other',
+            switch_inline_query_current_chat: ''
+          },
+        ])
+        bot.sendPhoto(msg.chat.id, movie.thumb_url, {
+          reply_to_message_id: msg.message_id,
+          caption: `**${movie.name}** \n-\n[${movie.year}] ${movie.origin_name} \n${movie.quality} - ${movie.lang}`,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: inlineKeyboardButton
+          }
+        })
       }
-      inlineKeyboardButton.push([
-        {
-          text: "⬅️ Back",
-          callback_data: `back_movie_${movie._id}`
-        }
-      ])
-      bot.editMessageReplyMarkup({
-        inline_keyboard: inlineKeyboardButton
-      }, {
-        message_id: msg.message?.message_id,
-        chat_id: msg.message?.chat.id
-      })
     }
-  }
-})
+  })
 
-module.exports = bot
+  bot.on('callback_query', (msg) => {
+    if (msg.data?.startsWith('back_movie_')) {
+      const id = msg.data.replace('episodes_', '').replace('back_movie_', '').trim()
+      const movie = data.filter(el => el._id == id)[0] || null
+      if (movie) {
+        let inlineKeyboardButton = []
+        if (movie.trailer_url) {
+          inlineKeyboardButton.push([
+            {
+              text: 'Trailer',
+              web_app: {
+                url: movie.trailer_url,
+              }
+            }
+          ])
+        }
+        inlineKeyboardButton.push([
+          {
+            text: 'Episodes',
+            callback_data: `episodes_${movie._id}`,
+          },
+          {
+            text: '📺 Search other',
+            switch_inline_query_current_chat: ''
+          },
+        ])
+        bot.editMessageReplyMarkup({
+          inline_keyboard: inlineKeyboardButton
+        }, {
+          message_id: msg.message?.message_id,
+          chat_id: msg.message?.chat.id
+        })
+      }
+    }
+    if (msg.data?.startsWith('episodes_')) {
+      const text = msg.data.replace('episodes_', '').replace('back_movie_', '').trim()
+      const id = text.split('_')[0] ?? "";
+      let page = parseInt(text.split('_')[1] ?? 1)
+      const limit = 36
+
+      const movie = data.filter(el => el._id == id)[0] || null
+      if (movie) {
+        const data = movie.episodes[0].server_data || []
+        if (page > Math.ceil(data.length / limit)) {
+          page = Math.ceil(data.length / limit)
+        }
+        if (page <= 0) {
+          page = 1
+        }
+        let offset = (page - 1) * limit
+        // debug({ id, page, limit, offset });
+
+        let inlineKeyboardButton = []
+        if (data.length) {
+          for (const groupData of chunks(data.slice(offset, limit + offset), 6)) {
+            let items = []
+            for (const item of groupData) {
+              items.push({
+                text: item.name,
+                web_app: {
+                  url: item.link_embed
+                }
+              })
+            }
+            inlineKeyboardButton.push(items)
+          }
+          if (data.length > limit) {
+            inlineKeyboardButton.push([
+              {
+                text: '◀️ Prev',
+                callback_data: `episodes_${id}_${page - 1}`
+              },
+              {
+                text: '▶️ Next',
+                callback_data: `episodes_${id}_${page + 1}`
+              }
+            ])
+          }
+        }
+        inlineKeyboardButton.push([
+          {
+            text: "⬅️ Back",
+            callback_data: `back_movie_${movie._id}`
+          }
+        ])
+        bot.editMessageReplyMarkup({
+          inline_keyboard: inlineKeyboardButton
+        }, {
+          message_id: msg.message?.message_id,
+          chat_id: msg.message?.chat.id
+        })
+      }
+    }
+  })
+
+  return bot
+}
+
+module.exports = createBot
